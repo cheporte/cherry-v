@@ -4,7 +4,7 @@ A lightweight RISC-V translator written in C++.
 
 Cherry-picked bits and branches, reimagining the RISC-V instruction set with simplicity and clarity in mind.
 
-Originally made with Kotlin a long time ago [(check here)](), this project aims to refine and improve what was done before.
+Originally made with Kotlin a long time ago [(check here)](https://github.com/cheporte/riscv-translator), this project aims to refine and improve what was done before.
 And refresh some memory as well ;>
 
 ---
