@@ -1,0 +1,24 @@
+# Ignore build artifacts
+/build/
+/CMakeFiles/
+/CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# CLion build directories
+cmake-build-debug/
+cmake-build-release/
+
+# Compiled object files
+*.o
+*.obj
+*.so
+*.a
+*.exe
+*.out
+
+# Editor files
+*.swp
+*~
+.vscode/
+.idea/
