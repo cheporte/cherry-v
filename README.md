@@ -45,8 +45,8 @@ make
 Your executable will be built as `./cherry-v`.
 
 ## 🛠 Requirements
-- C++17 or later
-- CMake 3.10+
+- C++23
+- CMake 3.31
 - A basic terminal and desire to tinker 🍃
 
 ## 📝 License
