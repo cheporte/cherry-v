@@ -3,6 +3,7 @@
 //
 
 #include "file_parser.hpp"
+#include "tables.hpp"
 #include <algorithm>
 #include <iostream>
 
@@ -47,7 +48,7 @@ void Parser::parse_lines() {
         token.line_number = line_num;
 
         if (!validate_instruction(token)) {
-            std::cerr << "[Parser] Invalid instruction at line " << line_num << ": " << line << std::endl;
+            std::cerr << "-> Skipping invalid instruction at line " << token.line_number << std::endl;
             continue;
         }
 
@@ -79,15 +80,62 @@ std::vector<std::string> Parser::tokenize(const std::string &line) {
         std::istringstream sub_iss(token);
         std::string sub_token;
         while (sub_iss >> sub_token) {
-            tokens.push_back(sub_token);
+            // Handle memory operand like 0(x5)
+            size_t paren_pos = sub_token.find('(');
+            if (paren_pos != std::string::npos && sub_token.back() == ')') {
+                std::string imm = sub_token.substr(0, paren_pos);
+                std::string reg = sub_token.substr(paren_pos + 1, sub_token.length() - paren_pos - 2);
+                if (!imm.empty()) tokens.push_back(imm);
+                tokens.push_back(reg);
+            } else {
+                tokens.push_back(sub_token);
+            }
         }
     }
 
     return tokens;
 }
 
+
 bool Parser::validate_instruction(const InstructionToken &token) {
-    return isa::opcode_table.find(token.mnemonic) != isa::opcode_table.end();
+    auto opcodeIt = isa::opcode_table.find(token.mnemonic);
+    if (opcodeIt == isa::opcode_table.end()) {
+        std::cerr << "[Error on line " << token.line_number << "] Unknown instruction: " << token.mnemonic << std::endl;
+        return false;
+    }
+
+    const auto format = opcodeIt->second;
+    size_t expected_nim_of_operands = 0;
+
+    if (format.type == "R") expected_nim_of_operands = 3;
+    if (format.type == "I") expected_nim_of_operands = 3;
+    if (format.type == "S") expected_nim_of_operands = 2;
+    if (format.type == "B") expected_nim_of_operands = 3;
+    if (format.type == "U") expected_nim_of_operands = 2;
+    if (format.type == "J") expected_nim_of_operands = 2;
+
+    if (token.operands.size() != expected_nim_of_operands) {
+        std::cerr << "[Error on line "
+                    << token.line_number
+                    << "] Invalid number of operands. Expected "
+                    << expected_nim_of_operands << ", got " << token.operands.size() << std::endl;
+        for (const auto& op : token.operands) {
+            std::cerr << "[Received Operands] " << op << std::endl;
+        }
+        return false;
+    }
+
+    for (const auto& op : token.operands) {
+        if (op.starts_with("x")) {
+            if (isa::regs_table.find(op) == isa::regs_table.end()) {
+                std::cerr << "[Error on line " << token.line_number << "] Invalid register name: " << op << std::endl;
+                return false;
+            }
+        }
+        // TODO: Add checks for immediate values and memory syntax
+    }
+
+    return true;
 }
 
 std::optional<isa::InstructionFormat> Parser::get_opcode_info(const std::string &mnemonic) {
