@@ -26,7 +26,7 @@ public:
     std::vector<InstructionToken> get_parsed_instructions() const;
 
 private:
-    std::vector<std::string> lines;
+    std::vector<std::pair<int, std::string>> lines;
     std::vector<InstructionToken> instructions;
 
     std::string trim(const std::string& s);

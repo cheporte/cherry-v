@@ -15,37 +15,34 @@ bool Parser::load_file(const std::string &file_name) {
     }
 
     std::string line;
+    int original_line_number = 1;
     while (std::getline(file, line)) {
-        lines.push_back(line);
+        lines.emplace_back(original_line_number++, line);
     }
 
     return true;
 }
 
 void Parser::preprocess() {
-    std::vector<std::string> cleaned_lines;
-    for (auto& line : lines) {
+    std::vector<std::pair<int, std::string>> cleaned_lines;
+    for (auto& [line_number, line] : lines) {
         std::string trimmed = trim(line);
         if (!is_comment_or_empty(trimmed)) {
-            cleaned_lines.push_back(trimmed);
+            cleaned_lines.emplace_back(line_number, trimmed);
         }
     }
     lines = cleaned_lines;
 }
 
 void Parser::parse_lines() {
-    int line_num = 1;
-    for (const auto& line : lines) {
+    for (const auto& [original_line_number, line] : lines) {
         std::vector<std::string> tokens = tokenize(line);
-        if (tokens.empty()) {
-            ++line_num;
-            continue;
-        }
+        if (tokens.empty()) continue;
 
         InstructionToken token;
         token.mnemonic = tokens[0];
         token.operands = std::vector<std::string>(tokens.begin() + 1, tokens.end());
-        token.line_number = line_num;
+        token.line_number = original_line_number;
 
         if (!validate_instruction(token)) {
             std::cerr << "-> Skipping invalid instruction at line " << token.line_number << std::endl;
@@ -53,7 +50,6 @@ void Parser::parse_lines() {
         }
 
         instructions.push_back(token);
-        ++line_num;
     }
 }
 
@@ -73,7 +69,14 @@ bool Parser::is_comment_or_empty(const std::string &line) {
 
 std::vector<std::string> Parser::tokenize(const std::string &line) {
     std::vector<std::string> tokens;
-    std::istringstream iss(line);
+
+    // Strip comments if present
+    size_t comment_pos = line.find_first_of("#;");
+    std::string line_no_comment = (comment_pos != std::string::npos)
+                                    ? line.substr(0, comment_pos)
+                                    : line;
+
+    std::istringstream iss(line_no_comment);
     std::string token;
 
     while (std::getline(iss, token, ',')) {
@@ -119,9 +122,6 @@ bool Parser::validate_instruction(const InstructionToken &token) {
                     << token.line_number
                     << "] Invalid number of operands. Expected "
                     << expected_nim_of_operands << ", got " << token.operands.size() << std::endl;
-        for (const auto& op : token.operands) {
-            std::cerr << "[Received Operands] " << op << std::endl;
-        }
         return false;
     }
 
