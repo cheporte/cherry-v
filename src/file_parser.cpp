@@ -6,6 +6,7 @@
 #include "tables.hpp"
 #include <algorithm>
 #include <iostream>
+#include <cstring>
 
 bool Parser::load_file(const std::string &file_name) {
     std::ifstream file(file_name);
@@ -108,31 +109,83 @@ bool Parser::validate_instruction(const InstructionToken &token) {
     }
 
     const auto format = opcodeIt->second;
-    size_t expected_nim_of_operands = 0;
+    size_t expected_num_of_operands = 0;
 
-    if (format.type == "R") expected_nim_of_operands = 3;
-    if (format.type == "I") expected_nim_of_operands = 3;
-    if (format.type == "S") expected_nim_of_operands = 2;
-    if (format.type == "B") expected_nim_of_operands = 3;
-    if (format.type == "U") expected_nim_of_operands = 2;
-    if (format.type == "J") expected_nim_of_operands = 2;
+    if (format.type == isa::R) expected_num_of_operands = 3;
+    if (format.type == isa::I) expected_num_of_operands = 3;
+    if (format.type == isa::S) expected_num_of_operands = 2;
+    if (format.type == isa::B) expected_num_of_operands = 3;
+    if (format.type == isa::U) expected_num_of_operands = 2;
+    if (format.type == isa::J) expected_num_of_operands = 2;
 
-    if (token.operands.size() != expected_nim_of_operands) {
+    if (token.operands.size() != expected_num_of_operands) {
         std::cerr << "[Error on line "
                     << token.line_number
                     << "] Invalid number of operands. Expected "
-                    << expected_nim_of_operands << ", got " << token.operands.size() << std::endl;
+                    << expected_num_of_operands << ", got " << token.operands.size() << std::endl;
         return false;
     }
 
-    for (const auto& op : token.operands) {
-        if (op.starts_with("x")) {
-            if (isa::regs_table.find(op) == isa::regs_table.end()) {
-                std::cerr << "[Error on line " << token.line_number << "] Invalid register name: " << op << std::endl;
+
+    std::string rd, rs1, rs2, imm;
+    switch (format.type) {
+        case isa::R:
+            for (const auto& op : token.operands) {
+                if (op.starts_with("x")) {
+                    if (isa::regs_table.find(op) == isa::regs_table.end()) {
+                        std::cerr << "[Error on line " << token.line_number << "] Invalid register name: " << op << std::endl;
+                        return false;
+                    }
+                }
+            }
+            break;
+        case isa::I:
+            rd = token.operands[0];
+
+            if (rd.starts_with("x")) {
+                if (isa::regs_table.find(rd) == isa::regs_table.end()) {
+                    std::cerr << "[Error on line " << token.line_number << "] Invalid register name: " << rd << std::endl;
+                    return false;
+                }
+            } else {
+                std::cerr << "[Error on line " << token.line_number << "] Invalid register name: " << rd << ". Register name should start with 'x'." << std::endl;
                 return false;
             }
-        }
-        // TODO: Add checks for immediate values and memory syntax
+
+            if (isa::load_type_instructions_table.find(token.mnemonic) == isa::load_type_instructions_table.end()) {
+                rs1 = token.operands[1];
+                imm = token.operands[2];
+            } else {
+                imm = token.operands[1];
+                rs1 = token.operands[2];
+            }
+
+            if (rs1.starts_with("x")) {
+                if (isa::regs_table.find(rs1) == isa::regs_table.end()) {
+                    std::cerr << "[Error on line " << token.line_number << "] Invalid register name: " << rs1 << std::endl;
+                    return false;
+                }
+            }
+
+            // check immediate
+            for (const auto& c : imm) {
+                if (!isdigit(c)) {
+                    std::cerr << "[Error on line " << token.line_number << "] Immediate value is not a number: " << imm << std::endl;
+                    break;
+                }
+            }
+            break;
+        case isa::S:
+            break;
+        case isa::B:
+            break;
+        case isa::U:
+            break;
+        case isa::J:
+            break;
+        defult:
+            std::cerr << "[Error on line " << token.line_number << "] Unknown instruction: " << token.mnemonic << std::endl;
+            return false;
     }
 
     return true;

@@ -22,3 +22,6 @@ cmake-build-release/
 *~
 .vscode/
 .idea/
+
+# Zed Editor .cache folder
+.cache/
