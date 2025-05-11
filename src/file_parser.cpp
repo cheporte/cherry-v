@@ -113,7 +113,7 @@ bool Parser::validate_instruction(const InstructionToken &token) {
 
     if (format.type == isa::R) expected_num_of_operands = 3;
     if (format.type == isa::I) expected_num_of_operands = 3;
-    if (format.type == isa::S) expected_num_of_operands = 2;
+    if (format.type == isa::S) expected_num_of_operands = 3;
     if (format.type == isa::B) expected_num_of_operands = 3;
     if (format.type == isa::U) expected_num_of_operands = 2;
     if (format.type == isa::J) expected_num_of_operands = 2;
@@ -171,7 +171,7 @@ bool Parser::validate_instruction(const InstructionToken &token) {
             for (const auto& c : imm) {
                 if (!isdigit(c)) {
                     std::cerr << "[Error on line " << token.line_number << "] Immediate value is not a number: " << imm << std::endl;
-                    break;
+                    return false;
                 }
             }
             break;
@@ -182,6 +182,16 @@ bool Parser::validate_instruction(const InstructionToken &token) {
         case isa::U:
             break;
         case isa::J:
+            rd = token.operands[0];
+            if (rd.starts_with("x")) {
+                if (isa::regs_table.find(rd) == isa::regs_table.end()) {
+                    std::cerr << "[Error on line " << token.line_number << "] Invalid register name: " << rd << std::endl;
+                    return false;
+                }
+            } else {
+                std::cerr << "[Error on line " << token.line_number << "] Invalid register name: " << rd << ". Register name should start with 'x'." << std::endl;
+                return false;
+            }
             break;
         defult:
             std::cerr << "[Error on line " << token.line_number << "] Unknown instruction: " << token.mnemonic << std::endl;
